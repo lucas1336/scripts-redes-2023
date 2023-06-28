@@ -434,45 +434,71 @@ ppp pap sent-username RTLIM1 password grupo4
 
 #### Politicas de seguridad
 
-Denegar acceso al servicio telnet a todos los usuarios, excepto al administrador
+Denegar el servicio web a todos los usuarios de la VLAN Ventas, los demás deben pasar
 
 ```cmd
-ip access-list extended LIMA-FILTRO-TELNET
-remark "Filtrar el acceso de TODOS del servicio TELNET, excepto el Administrador"
-permit tcp host 172.24.16.4 any eq telnet
-deny tcp any any eq telnet
+ip access-list extended PIURA-FILTRO-WEB
+remark "Filtrar el acceso de la VLAN de Ventas del servicio Web (80, 443), el resto debe pasar"
+deny tcp 172.24.32.192 0.0.0.63 172.24.33.36 0.0.0.0 eq 80
+deny tcp 172.24.32.192 0.0.0.63 172.24.33.36 0.0.0.0 eq 443
+permit ip any any
+exit
+int vlan 40
+ip access-group PIURA-FILTRO-WEB in
+exit
+```
+
+Denegar el servicio de correo a la VLAN de Finanzas, el resto debe pasar
+
+```cmd
+ip access-list extended PIURA-FILTRO-CORREO
+remark "Filtrar el acceso de la VLAN de Finanzas del servicio CORREO (25, 110 y 143), el resto debe pasar"
+deny tcp 172.24.32.160 0.0.0.31 172.24.33.34 0.0.0.0 eq 25
+deny tcp 172.24.32.160 0.0.0.31 172.24.33.34 0.0.0.0 eq 110
+deny tcp 172.24.32.160 0.0.0.31 172.24.33.34 0.0.0.0 eq 143
+permit ip any any
+exit
+int vlan 50
+ip access-group PIURA-FILTRO-CORREO in
+exit
+```
+
+Denegar el servicio FTP a la mitad de los host de la VLAN de Marketing, el resto debe pasar
+
+```cmd
+ip access-list extended PIURA-FILTRO-FTP
+remark "Filtrar parcialmente el acceso de la VLAN de Marketing del servicio FTP."
+deny tcp 172.24.32.64 0.0.0.31 host 172.24.33.38 eq 20
+deny tcp 172.24.32.64 0.0.0.31 host 172.24.33.38 eq 21
+permit tcp any any eq 20
+permit tcp any any eq 21
 exit
 line vty 0 15
-access-class LIMA-FILTRO-TELNET in
-exit
-```
-
-Denegar el acceso al servicio FTP a la VLAN de Marketing
-
-```cmd
-ip access-list extended LIMA-FILTRO-FTP
-remark "Filtrar el acceso de la VLAN de Marketing del servicio FTP (20, 21), el resto debe pasar"
-deny tcp 172.24.16.192 0.0.0.63 172.24.17.231 0.0.0.0 eq 20
-deny tcp 172.24.16.192 0.0.0.63 172.24.17.231 0.0.0.0 eq 21
-permit ip any any
+access-class PIURA-FILTRO-FIP
 exit
 int vlan 30
-ip access-group LIMA-FILTRO-FTP in
+ip access-group PIURA-FILTRO-FTP in
 exit
 ```
 
-Denegar el acceso al servicio WEB a la VLAN de Logistica
+Denegar el servicio SSH a todos, menos del Administrador.
 
 ```cmd
-ip access-list extended LIMA-FILTRO-WEB
-remark "Filtrar el acceso de la VLAN de Losgistica del servicio WEB (80, 443), el resto debe pasar"
-deny tcp 172.24.16.128 0.0.0.63 172.24.17.230 0.0.0.0 eq 80
-deny tcp 172.24.16.128 0.0.0.63 172.24.17.230 0.0.0.0 eq 443
+access-list 1 permit host 172.24.32.3
+ip access-list extended PIURA-FILTRO-SSH
+remark "Filtrar el servicio SSH a todos, excepto el ADMINISTRADOR"
+permit tcp host 172.24.32.3 any eq 22
+permit tcp host 172.24.32.3 any eq telnet
+deny tcp any any eq 22
+deny tcp any any eq telnet
 permit ip any any
 exit
-int vlan 20
-ip access-group LIMA-FILTRO-WEB in
+line vty 015
+access-class PIURA-FILTRO-SSH
 exit
+```
+
+
 ```
 
 #### Seguridad SSH
